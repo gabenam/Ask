@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Jessie Li, Will You Be My Valentine?</title>
+
+  <!-- Confetti Library (CDN) -->
+  <!-- This lightweight library will let us easily fire confetti. -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+
+  <style>
+    /* Global reset and box-sizing */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    /* Body styling */
+    body {
+      font-family: 'Arial', sans-serif;
+      background: #ffe6e6;
+      color: #333;
+      overflow: hidden; /* so we can have floating elements without scrollbars */
+    }
+
+    /* Main container to center content */
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      text-align: center;
+      position: relative; /* so heart divs can float behind or in front */
+      overflow: hidden;
+      padding: 1rem;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      z-index: 2; /* keep text on top */
+    }
+
+    .heart {
+      font-size: 4rem;
+      color: #ff4d4d;
+      margin-bottom: 1.5rem;
+      z-index: 2;
+    }
+
+    /* Buttons container */
+    .buttons {
+      display: flex;
+      gap: 1.5rem;
+      z-index: 2;
+    }
+
+    /* Button styling */
+    button {
+      background-color: #ff4d4d;
+      color: white;
+      border: none;
+      padding: 1rem 2rem;
+      font-size: 1rem;
+      border-radius: 25px;
+      cursor: pointer;
+      transition: background-color 0.3s, transform 0.3s;
+    }
+
+    button:hover {
+      background-color: #ff1a1a;
+      transform: translateY(-2px);
+    }
+
+    #noBtn {
+      position: relative;
+    }
+
+    /* Popup Overlay */
+    #popupOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.5);
+      display: none; /* hidden by default */
+      align-items: center;
+      justify-content: center;
+      z-index: 999; /* keep it on top */
+    }
+
+    #popup {
+      background: white;
+      padding: 2rem;
+      border-radius: 8px;
+      text-align: center;
+      max-width: 80%;
+    }
+
+    #popup h2 {
+      margin-bottom: 1rem;
+    }
+
+    #popup button {
+      margin-top: 1rem;
+      background-color: #ff4d4d;
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border-radius: 25px;
+      border: none;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    #popup button:hover {
+      background-color: #ff1a1a;
+    }
+
+    /* Floating hearts in the background */
+    .floating-heart {
+      position: absolute;
+      bottom: -10%;
+      font-size: 2rem;
+      color: #ff4d4d;
+      opacity: 0.8;
+      animation: floatUp 10s linear infinite;
+    }
+
+    /* Simple upward-floating animation */
+    @keyframes floatUp {
+      0% {
+        transform: translateY(0) rotate(0deg);
+      }
+      100% {
+        transform: translateY(-120vh) rotate(360deg);
+      }
+    }
+
+    /* Music player button */
+    #musicBtn {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background-color: #ff4d4d;
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 25px;
+      cursor: pointer;
+      transition: background-color 0.3s, transform 0.3s;
+      z-index: 3; /* top layer so it's clickable */
+    }
+
+    #musicBtn:hover {
+      background-color: #ff1a1a;
+      transform: translateY(-2px);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- (Optional) Background Music - replace 'bgMusic.mp3' with your own file URL -->
+  <audio id="bgMusic" src="bgMusic.mp3" loop></audio>
+
+  <!-- Floating Hearts (duplicate hearts at random left positions & delays) -->
+  <div class="floating-heart" style="left: 10%; animation-duration: 9s;">❤️</div>
+  <div class="floating-heart" style="left: 30%; animation-duration: 11s;">❤️</div>
+  <div class="floating-heart" style="left: 50%; animation-duration: 8s;">❤️</div>
+  <div class="floating-heart" style="left: 70%; animation-duration: 12s;">❤️</div>
+  <div class="floating-heart" style="left: 90%; animation-duration: 10s;">❤️</div>
+
+  <!-- Main content container -->
+  <div class="container">
+
+    <!-- Music Button -->
+    <button id="musicBtn">Play Music</button>
+
+    <h1>Jessie Li, Will You Be My Valentine?</h1>
+    <div class="heart">❤️</div>
+
+    <div class="buttons">
+      <button id="yesBtn">Yes</button>
+      <button id="noBtn">No</button>
+    </div>
+  </div>
+
+  <!-- Popup Overlay -->
+  <div id="popupOverlay">
+    <div id="popup">
+      <h2 id="popupText"></h2>
+      <button id="popupCloseBtn">Close</button>
+    </div>
+  </div>
+
+  <script>
+    const yesBtn = document.getElementById('yesBtn');
+    const noBtn = document.getElementById('noBtn');
+    const popupOverlay = document.getElementById('popupOverlay');
+    const popupText = document.getElementById('popupText');
+    const popupCloseBtn = document.getElementById('popupCloseBtn');
+    const bgMusic = document.getElementById('bgMusic');
+    const musicBtn = document.getElementById('musicBtn');
+
+    let isMusicPlaying = false;
+
+    // Play / Pause background music
+    musicBtn.addEventListener('click', () => {
+      if (!isMusicPlaying) {
+        bgMusic.play();
+        musicBtn.textContent = 'Pause Music';
+        isMusicPlaying = true;
+      } else {
+        bgMusic.pause();
+        musicBtn.textContent = 'Play Music';
+        isMusicPlaying = false;
+      }
+    });
+
+    // Fire confetti
+    function runConfetti() {
+      // Basic usage of the library (canvas-confetti)
+      const duration = 2 * 1000; // 2 seconds
+      const animationEnd = Date.now() + duration;
+      const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 1000 };
+
+      function randomInRange(min, max) {
+        return Math.random() * (max - min) + min;
+      }
+
+      const interval = setInterval(function() {
+        const timeLeft = animationEnd - Date.now();
+
+        if (timeLeft <= 0) {
+          return clearInterval(interval);
+        }
+
+        const particleCount = 50 * (timeLeft / duration);
+        // since particles fall down, start confetti a bit higher than random
+        confetti(Object.assign({}, defaults, {
+          particleCount,
+          origin: {
+            x: randomInRange(0.2, 0.8),
+            y: Math.random() - 0.2
+          }
+        }));
+      }, 250);
+    }
+
+    // When user clicks "Yes"
+    yesBtn.addEventListener('click', () => {
+      popupText.textContent = "Yay! I’m so happy you said yes! ♥";
+      popupOverlay.style.display = 'flex';
+      runConfetti(); // Launch confetti
+    });
+
+    // When user tries to hover over "No" - it moves around
+    noBtn.addEventListener('mouseover', () => {
+      // Move the "No" button around (like it's "running away")
+      const randomX = Math.floor(Math.random() * (window.innerWidth - 100));
+      const randomY = Math.floor(Math.random() * (window.innerHeight - 50));
+      noBtn.style.position = 'absolute';
+      noBtn.style.left = randomX + 'px';
+      noBtn.style.top = randomY + 'px';
+    });
+
+    // Close the popup
+    popupCloseBtn.addEventListener('click', () => {
+      popupOverlay.style.display = 'none';
+    });
+  </script>
+
+</body>
+</html>
